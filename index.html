@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>WILDZONE: The Lost Island</title>
+<style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#07110d;color:#eef8ef;font:14px/1.4 system-ui,Arial;overflow:hidden}
+#game{position:fixed;inset:0;width:100%;height:100%;display:block}
+#top{position:fixed;left:14px;right:14px;top:12px;display:flex;justify-content:space-between;align-items:flex-start;gap:10px;pointer-events:none}
+.card{background:#08150fdf;border:1px solid #6b8f6e66;border-radius:12px;padding:11px 13px;backdrop-filter:blur(8px);box-shadow:0 8px 24px #0003;pointer-events:auto}
+h1{font-size:18px;margin:0 0 3px;letter-spacing:2px;color:#b8f7b8}p{margin:4px 0;color:#c3d8c4}
+#stats{display:flex;gap:10px;flex-wrap:wrap}.stat{min-width:68px}.label{font-size:10px;color:#a8c0aa;text-transform:uppercase;letter-spacing:1px}.value{font-size:17px;font-weight:800}
+.bar{height:5px;background:#25352a;border-radius:9px;overflow:hidden;margin-top:4px}.fill{height:100%;width:100%;background:#58e38a}
+input,button,select{font:inherit;border-radius:8px;border:1px solid #47684d;padding:11px;background:#0b1d12;color:#fff}input{width:100%;margin:12px 0}button{background:#a7f3b0;color:#0b1b0e;font-weight:800;cursor:pointer}button:hover{filter:brightness(1.08)}
+#joinScreen{position:fixed;inset:0;display:grid;place-items:center;background:linear-gradient(#06120bc9,#06120bf0);padding:18px}
+#joinBox{width:min(620px,100%);max-height:92vh;overflow:auto;text-align:center;padding:25px}#joinBox h2{font-size:30px;margin:4px 0;color:#b8f7b8;letter-spacing:3px}
+#notice{position:fixed;left:50%;transform:translateX(-50%);top:115px;max-width:90vw;text-align:center;background:#07140fe8;padding:9px 14px;border-radius:9px;color:#d7fbd9;pointer-events:none}
+#mission{position:fixed;left:14px;top:112px;max-width:370px}
+#help{position:fixed;bottom:12px;left:12px;max-width:390px}#right{position:fixed;right:12px;bottom:12px;display:flex;flex-direction:column;gap:7px;align-items:stretch}
+#right button{min-width:160px}#players{font-size:12px;color:#d5e8d5;white-space:pre-line;margin-top:5px}.hint{font-size:12px;color:#a9c5ac}
+#win{display:none;position:fixed;inset:0;background:#020a08eF;place-items:center;text-align:center;padding:20px}#win .card{max-width:520px;padding:32px}
+@media(max-width:700px){#top{left:6px;right:6px;top:6px;flex-direction:column}.card{padding:7px 9px}#stats{gap:7px}.value{font-size:14px}#mission{top:155px;left:6px;max-width:57vw;font-size:12px}#notice{top:235px}#help{max-width:55vw;bottom:6px;left:6px}#right{right:6px;bottom:6px}#right button{min-width:112px;padding:8px;font-size:11px}}
+</style>
+</head>
+<body>
+<canvas id="game"></canvas>
+<div id="top">
+  <div class="card"><h1>WILDZONE</h1><div class="hint">THE LOST ISLAND · 4 PLAYER CO-OP</div><div id="connection" class="hint">Connecting...</div></div>
+  <div class="card" id="stats">
+    <div class="stat"><div class="label">Health</div><div class="value" id="healthText">100</div><div class="bar"><div id="healthBar" class="fill"></div></div></div>
+    <div class="stat"><div class="label">Hunger</div><div class="value" id="hungerText">100</div><div class="bar"><div id="hungerBar" class="fill" style="background:#f3c969"></div></div></div><div class="stat"><div class="label">Stamina</div><div class="value" id="staminaText">100</div><div class="bar"><div id="staminaBar" class="fill" style="background:#67c9ff"></div></div></div><div class="stat"><div class="label">Character</div><div class="value" id="roleText">—</div></div>
+    <div class="stat"><div class="label">Wood</div><div class="value" id="woodText">0</div></div>
+    <div class="stat"><div class="label">Scrap</div><div class="value" id="scrapText">0</div></div>
+    <div class="stat"><div class="label">Berries</div><div class="value" id="berryText">0</div></div>
+  </div>
+</div>
+<div id="mission" class="card"><b>📜 CURRENT MISSION</b><p id="missionText">MISSION 1: Shipwreck Survival — collect resources.</p><div class="hint">Boat: beach marker · Boss: temple marker</div></div>
+<div id="notice">Join the team and survive the island.</div>
+<div id="help" class="card"><b>CONTROLS</b><p>WASD move · Mouse look · Shift sprint</p><p>E gather · Left click attack · Q eat berry</p><p>Craft Spear: 3 wood + 2 scrap · Medkit: 1 wood + 2 berries</p><p>Eat berries to refill hunger; hunger zero drains health.</p><p>Medic: stand near a downed teammate and press REVIVE.</p><p>Support: press TEAM STAMINA BOOST near teammates.</p><div class="hint">Look for 🛶 BOAT and 👑 TEMPLE markers.</div></div>
+<div id="right">
+  <button id="gatherBtn">E · GATHER</button><button id="attackBtn">⚔ ATTACK</button><button id="eatBtn">Q · EAT BERRY</button>
+  <button id="spearBtn">🗡️ CRAFT SPEAR</button><button id="medkitCraftBtn">🩹 CRAFT MEDKIT</button><button id="medkitUseBtn">🩹 USE MEDKIT</button><button id="repairBtn">🛶 REPAIR BOAT</button><button id="reviveBtn">💚 REVIVE TEAMMATE</button><button id="staminaBtn">⚡ TEAM STAMINA BOOST</button><button id="escapeBtn">🔑 ESCAPE</button>
+  <div class="card"><b>TEAM</b><div id="players">No players yet</div></div>
+</div>
+<div id="joinScreen"><div id="joinBox" class="card"><h2>WILDZONE</h2><p><b>THE LOST ISLAND</b></p><p>A storm wrecked your boat. Gather, survive the hunters, defeat the island guardian, find its key and escape together.</p><input id="playerName" maxlength="16" placeholder="Your survivor name" value="Survivor">
+<div style="text-align:left;margin:8px 0"><b>Choose your character</b><div class="hint">Each role has a different team ability.</div></div>
+<div id="roleChoices" style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;text-align:left">
+<label class="card" style="cursor:pointer"><input type="radio" name="role" value="medic" checked style="width:auto;margin:0 6px 0 0"> 💚 <b>Medic</b><div class="hint">Can revive one downed teammate once per match.</div></label>
+<label class="card" style="cursor:pointer"><input type="radio" name="role" value="scout" style="width:auto;margin:0 6px 0 0"> 🏃 <b>Scout</b><div class="hint">Runs faster and regenerates stamina faster.</div></label>
+<label class="card" style="cursor:pointer"><input type="radio" name="role" value="warrior" style="width:auto;margin:0 6px 0 0"> ⚔️ <b>Warrior</b><div class="hint">Deals stronger damage to monsters and the boss.</div></label>
+<label class="card" style="cursor:pointer"><input type="radio" name="role" value="support" style="width:auto;margin:0 6px 0 0"> ⚡ <b>Support</b><div class="hint">Can refill nearby teammates' stamina once every 30 seconds.</div></label>
+</div>
+<button id="joinBtn" style="width:100%;margin-top:10px">ENTER THE WILDS</button><p id="joinError" class="hint"></p></div></div>
+<div id="win"><div class="card"><h1>🏆 TRUE ENDING</h1><h2>You escaped the Lost Island!</h2><p id="winNames"></p><p>All survivors made it home. Thanks for playing WILDZONE.</p><button onclick="location.reload()">PLAY AGAIN</button></div></div>
+<script src="/socket.io/socket.io.js"></script>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+const socket=io(),canvas=document.getElementById('game'),scene=new THREE.Scene();
+scene.background=new THREE.Color(0x9db8a1);scene.fog=new THREE.FogExp2(0x9db8a1,.0085);
+const camera=new THREE.PerspectiveCamera(70,innerWidth/innerHeight,.1,500);
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});renderer.setPixelRatio(Math.min(devicePixelRatio,1.8));renderer.setSize(innerWidth,innerHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.outputColorSpace=THREE.SRGBColorSpace;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.1;
+scene.add(new THREE.HemisphereLight(0xd8edff,0x293c24,2));
+const sun=new THREE.DirectionalLight(0xffedcf,2.4);sun.position.set(-35,70,25);sun.castShadow=true;sun.shadow.mapSize.set(1024,1024);scene.add(sun);
+const mat=(c,r=1)=>new THREE.MeshStandardMaterial({color:c,roughness:r});
+const ground=new THREE.Mesh(new THREE.PlaneGeometry(180,180),mat(0x476b3d));ground.rotation.x=-Math.PI/2;ground.receiveShadow=true;scene.add(ground);
+const grid=new THREE.GridHelper(180,45,0x76936a,0x5b7c50);grid.position.y=.02;grid.material.transparent=true;grid.material.opacity=.12;scene.add(grid);
+// tropical forest
+const trunkMat=mat(0x59412d),treeMat=mat(0x284b2d),leafMat=mat(0x426f3a),rockMat=mat(0x737d70);
+for(let i=0;i<210;i++){const x=(Math.random()-.5)*170,z=(Math.random()-.5)*170;if(Math.hypot(x,z)<10)continue;const t=new THREE.Mesh(new THREE.CylinderGeometry(.22,.36,2.8,7),trunkMat);t.position.set(x,1.4,z);t.castShadow=true;scene.add(t);const c=new THREE.Mesh(new THREE.ConeGeometry(1.7+Math.random()*1.1,3.7+Math.random()*2,7),Math.random()<.5?treeMat:leafMat);c.position.set(x,3.8,z);c.castShadow=true;scene.add(c);}
+for(let i=0;i<48;i++){const r=new THREE.Mesh(new THREE.DodecahedronGeometry(.5+Math.random()*1.1),rockMat);r.position.set((Math.random()-.5)*155,.45,(Math.random()-.5)*155);r.rotation.set(Math.random(),Math.random(),Math.random());r.castShadow=true;scene.add(r);}
+// cabin and campfire
+const cabin=new THREE.Group(),cb=new THREE.Mesh(new THREE.BoxGeometry(7,3.2,5),mat(0x69513b));cb.position.y=1.6;cb.castShadow=true;cabin.add(cb);const roof=new THREE.Mesh(new THREE.ConeGeometry(4.8,2.5,4),mat(0x40352e));roof.rotation.y=Math.PI/4;roof.position.y=4.2;roof.scale.set(1,.75,.75);cabin.add(roof);const door=new THREE.Mesh(new THREE.BoxGeometry(1.1,2,.12),mat(0x2b211a));door.position.set(0,1.05,2.56);cabin.add(door);cabin.position.set(20,0,-16);scene.add(cabin);
+const fire=new THREE.Group(),logs=new THREE.Mesh(new THREE.CylinderGeometry(.18,.18,2,7),mat(0x553722));logs.rotation.z=Math.PI/2;logs.position.y=.2;fire.add(logs);const l2=logs.clone();l2.rotation.y=Math.PI/2;fire.add(l2);const flame=new THREE.Mesh(new THREE.ConeGeometry(.55,1.5,8),new THREE.MeshBasicMaterial({color:0xff812b}));flame.position.y=.95;fire.add(flame);const fireLight=new THREE.PointLight(0xff8c38,3,15);fireLight.position.y=1.5;fire.add(fireLight);scene.add(fire);
+// Boat wreck marker on beach; repaired boat becomes a clearer model.
+const boat=new THREE.Group(),hull=new THREE.Mesh(new THREE.BoxGeometry(5,.8,2.1),mat(0x79512e));hull.position.y=.45;boat.add(hull);const bow=new THREE.Mesh(new THREE.ConeGeometry(1.05,2.4,4),mat(0x79512e));bow.rotation.x=Math.PI/2;bow.position.set(0,.48,1.7);boat.add(bow);boat.position.set(-63,0,62);boat.rotation.y=-.6;scene.add(boat);
+const boatLamp=new THREE.PointLight(0xffd58b,1.5,12);boatLamp.position.set(-63,2,62);scene.add(boatLamp);
+function marker(text,x,z,color){const g=new THREE.Group();const ring=new THREE.Mesh(new THREE.TorusGeometry(2,.12,8,28),new THREE.MeshBasicMaterial({color}));ring.rotation.x=Math.PI/2;ring.position.y=.08;g.add(ring);const spriteCanvas=document.createElement('canvas');spriteCanvas.width=256;spriteCanvas.height=64;const c=spriteCanvas.getContext('2d');c.fillStyle='#07130de8';c.fillRect(0,0,256,64);c.fillStyle='#ffffff';c.font='bold 24px Arial';c.textAlign='center';c.fillText(text,128,40);const tex=new THREE.CanvasTexture(spriteCanvas);const spr=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true}));spr.scale.set(10,2.5,1);spr.position.y=4;g.add(spr);g.position.set(x,0,z);scene.add(g);return g;}
+const boatMarker=marker('🛶 BOAT',-63,62,0xffd58b),templeMarker=marker('👑 TEMPLE',57,-57,0xff5d55);
+const temple=new THREE.Group();for(let i=0;i<5;i++){const col=new THREE.Mesh(new THREE.CylinderGeometry(.65,.85,7,8),mat(0x777565));col.position.set(57-5+i*2.5,3.5,-61);temple.add(col);}const top=new THREE.Mesh(new THREE.BoxGeometry(15,1.1,3),mat(0x625e50));top.position.set(57,7,-61);temple.add(top);scene.add(temple);
+const playerMeshes=new Map(),monsterMeshes=new Map(),resourceMeshes=new Map();
+function makePlayer(color){const g=new THREE.Group();const body=new THREE.Mesh(new THREE.CapsuleGeometry(.48,.9,4,8),mat(color));body.position.y=1.15;body.castShadow=true;g.add(body);const head=new THREE.Mesh(new THREE.SphereGeometry(.34,12,10),mat(0xe6c5a2));head.position.y=2;g.add(head);const pack=new THREE.Mesh(new THREE.BoxGeometry(.55,.65,.28),mat(0x554638));pack.position.set(0,1.25,-.42);g.add(pack);return g;}
+function makeMonster(boss=false){const g=new THREE.Group();const body=new THREE.Mesh(new THREE.CapsuleGeometry(boss?1.25:.68,boss?2.1:1.15,4,8),mat(boss?0x421e29:0x293c30));body.position.y=boss?2:1.25;body.castShadow=true;g.add(body);const head=new THREE.Mesh(new THREE.SphereGeometry(boss?.9:.55,12,10),mat(boss?0x71303b:0x4b6650));head.position.y=boss?3.65:2.25;g.add(head);for(const x of [-.2,.2]){const eye=new THREE.Mesh(new THREE.SphereGeometry(boss?.13:.075,8,8),new THREE.MeshBasicMaterial({color:0xff392b}));eye.position.set(x*(boss?1.6:1),boss?3.75:2.32,boss?.82:.49);g.add(eye);}return g;}
+function makeResource(type){const g=new THREE.Group();if(type==='wood'){const log=new THREE.Mesh(new THREE.CylinderGeometry(.22,.25,1.2,8),mat(0x93643d));log.rotation.z=Math.PI/2;log.position.y=.35;g.add(log);const leaf=new THREE.Mesh(new THREE.SphereGeometry(.45,8,7),mat(0x477e3d));leaf.position.set(.4,.65,0);g.add(leaf);}else if(type==='berry'){const bush=new THREE.Mesh(new THREE.SphereGeometry(.6,9,8),mat(0x477e3d));bush.position.y=.55;g.add(bush);for(let i=0;i<5;i++){const b=new THREE.Mesh(new THREE.SphereGeometry(.11,8,6),mat(0x9d54ce));b.position.set(Math.cos(i*1.25)*.42,.55+(i%2)*.22,Math.sin(i*1.25)*.42);g.add(b);}}else{const scrap=new THREE.Mesh(new THREE.BoxGeometry(.8,.35,.45),mat(0x9ba5a8,.5));scrap.position.y=.25;scrap.rotation.y=Math.random();g.add(scrap);const bolt=new THREE.Mesh(new THREE.CylinderGeometry(.09,.09,.4,8),mat(0x50595e));bolt.position.set(.2,.45,0);g.add(bolt);}return g;}
+let myId=null,joined=false,worldSize=180,state={players:[],monsters:[],resources:[],quest:{}},myPos=new THREE.Vector3(),yaw=0,pitch=-.18,health=100,stamina=100,hunger=100,wood=0,berries=0,scrap=0,spear=false,medkits=0,pointerLocked=false,lastMoveSend=0,myRole='medic';
+const keys={};let staminaLocal=100,noticeTimer;
+function notice(t){const el=document.getElementById('notice');el.textContent=t;el.style.opacity='1';clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>el.style.opacity='.45',4500);}
+socket.on('connect',()=>document.getElementById('connection').textContent='🟢 Online connected');socket.on('disconnect',()=>document.getElementById('connection').textContent='🔴 Disconnected');
+socket.on('joinError',m=>{document.getElementById('joinError').textContent=m;document.getElementById('joinBtn').disabled=false;});
+socket.on('joined',d=>{myId=d.id;worldSize=d.worldSize;state=d;joined=true;document.getElementById('joinScreen').style.display='none';notice('The Wrong Island: find supplies and survive!');applyState();});
+socket.on('worldState',d=>{state=d;applyState();});socket.on('notice',notice);
+socket.on('missionUpdate',m=>document.getElementById('missionText').textContent=m);
+socket.on('gameWon',d=>{document.getElementById('winNames').textContent='Survivors: '+d.names.join(', ');document.getElementById('win').style.display='grid';document.exitPointerLock?.();});
+document.getElementById('joinBtn').onclick=()=>{if(!socket.connected){document.getElementById('joinError').textContent='Server connection එක එනකම් ඉන්න.';return;}document.getElementById('joinBtn').disabled=true;myRole=document.querySelector('input[name="role"]:checked')?.value||'medic';socket.emit('joinGame',{name:document.getElementById('playerName').value,role:myRole});};
+function applyState(){
+ const pids=new Set();state.players.forEach((p,i)=>{pids.add(p.id);if(p.id===myId){health=p.health;staminaLocal=p.stamina??staminaLocal;hunger=p.hunger??hunger;wood=p.wood;berries=p.berries;scrap=p.scrap;spear=!!p.spear;medkits=p.medkits||0;myRole=p.role||myRole;myPos.set(p.x,0,p.z);if(Number.isFinite(p.yaw))yaw=p.yaw;}let g=playerMeshes.get(p.id);if(!g){g=makePlayer([0x42d6a4,0x62a5ff,0xff7893,0xffd45c][i%4]);scene.add(g);playerMeshes.set(p.id,g);}g.position.set(p.x,0,p.z);g.rotation.y=p.yaw||0;g.userData.role=p.role;g.userData.downed=!!p.downed;});
+ for(const [id,g] of playerMeshes)if(!pids.has(id)){scene.remove(g);playerMeshes.delete(id);}
+ const mids=new Set();state.monsters.forEach(m=>{mids.add(m.id);let g=monsterMeshes.get(m.id);if(!g){g=makeMonster(m.boss);scene.add(g);monsterMeshes.set(m.id,g);}g.position.set(m.x,0,m.z);if(m.boss){g.scale.setScalar(1.45);g.userData.hp=m.hp;}});for(const [id,g] of monsterMeshes)if(!mids.has(id)){scene.remove(g);monsterMeshes.delete(id);}
+ const rids=new Set();state.resources.forEach(r=>{rids.add(r.id);let g=resourceMeshes.get(r.id);if(!g){g=makeResource(r.type);g.userData.resourceId=r.id;g.userData.type=r.type;scene.add(g);resourceMeshes.set(r.id,g);}g.position.set(r.x,0,r.z);});for(const [id,g] of resourceMeshes)if(!rids.has(id)){scene.remove(g);resourceMeshes.delete(id);}
+ document.getElementById('healthText').textContent=health;document.getElementById('healthBar').style.width=health+'%';document.getElementById('hungerText').textContent=Math.round(hunger);document.getElementById('hungerBar').style.width=hunger+'%';document.getElementById('roleText').textContent=({medic:'MEDIC',scout:'SCOUT',warrior:'WARRIOR',support:'SUPPORT'})[myRole]||myRole.toUpperCase();document.getElementById('woodText').textContent=wood;document.getElementById('scrapText').textContent=scrap;document.getElementById('berryText').textContent=berries;
+ document.getElementById('players').textContent=state.players.map(p=>`${p.name} · ${p.role} · ❤️${p.health}${p.downed?' DOWN':''} · 🗡️${p.spear?'yes':'no'} · 🩹${p.medkits||0}`).join('\n')||'No players';
+ if(state.quest){document.getElementById('missionText').textContent=state.quest.message;boat.visible=!state.quest.escaped;if(state.quest.boatRepaired){boat.scale.set(1.1,1.1,1.1);boat.children.forEach(c=>c.material=mat(0x9a6738));}if(state.quest.bossDefeated)templeMarker.visible=false;}
+}
+window.addEventListener('keydown',e=>{keys[e.key.toLowerCase()]=true;if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(e.key.toLowerCase()))e.preventDefault();if(e.key.toLowerCase()==='e')gatherNearest();if(e.key.toLowerCase()==='q')socket.emit('eatBerry');});
+window.addEventListener('keyup',e=>keys[e.key.toLowerCase()]=false);window.addEventListener('blur',()=>Object.keys(keys).forEach(k=>keys[k]=false));
+canvas.addEventListener('click',()=>{if(joined&&!pointerLocked)canvas.requestPointerLock?.();});document.addEventListener('pointerlockchange',()=>pointerLocked=document.pointerLockElement===canvas);
+document.addEventListener('mousemove',e=>{if(pointerLocked){yaw-=e.movementX*.0022;pitch=Math.max(-.8,Math.min(.25,pitch-e.movementY*.0017));}});
+function attack(){if(joined)socket.emit('attack');}window.addEventListener('mousedown',e=>{if(e.button===0&&joined&&pointerLocked)attack();});
+function gatherNearest(){if(!joined)return;let best=null,dist=4.8;for(const [id,g] of resourceMeshes){const d=Math.hypot(g.position.x-myPos.x,g.position.z-myPos.z);if(d<dist){dist=d;best=id;}}if(best)socket.emit('gather',best);else notice('Resource එකක් ළඟට යන්න.');}
+document.getElementById('gatherBtn').onclick=gatherNearest;document.getElementById('attackBtn').onclick=attack;document.getElementById('eatBtn').onclick=()=>socket.emit('eatBerry');document.getElementById('repairBtn').onclick=()=>socket.emit('repairBoat');document.getElementById('spearBtn').onclick=()=>socket.emit('craftSpear');document.getElementById('medkitCraftBtn').onclick=()=>socket.emit('craftMedkit');document.getElementById('medkitUseBtn').onclick=()=>socket.emit('useMedkit');document.getElementById('reviveBtn').onclick=()=>socket.emit('revive');document.getElementById('staminaBtn').onclick=()=>socket.emit('teamStaminaBoost');document.getElementById('escapeBtn').onclick=()=>socket.emit('escape');
+const clock=new THREE.Clock();
+function animate(){requestAnimationFrame(animate);const dt=Math.min(clock.getDelta(),.05);
+ if(joined){const f=(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),s=(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0),moving=!!(f||s),sprint=keys.shift&&staminaLocal>1&&moving&&health>0,spd=sprint?(myRole==='scout'?10:8):(myRole==='scout'?5.5:5);
+ if(health<=0){staminaLocal=Math.min(100,staminaLocal+2*dt);}else if(sprint)staminaLocal=Math.max(0,staminaLocal-(myRole==='scout'?13:20)*dt);else staminaLocal=Math.min(100,staminaLocal+(myRole==='scout'?17:11)*dt);
+ if(moving&&health>0){const len=Math.hypot(f,s)||1,fx=-Math.sin(yaw),fz=-Math.cos(yaw),rx=Math.cos(yaw),rz=-Math.sin(yaw);myPos.x+=(fx*f+rx*s)/len*spd*dt;myPos.z+=(fz*f+rz*s)/len*spd*dt;myPos.x=THREE.MathUtils.clamp(myPos.x,-worldSize/2+2,worldSize/2-2);myPos.z=THREE.MathUtils.clamp(myPos.z,-worldSize/2+2,worldSize/2-2);}
+ if(performance.now()-lastMoveSend>70){socket.emit('move',{x:myPos.x,z:myPos.z,yaw,stamina:staminaLocal});lastMoveSend=performance.now();}
+ const dir=new THREE.Vector3(-Math.sin(yaw)*Math.cos(pitch),Math.sin(pitch),-Math.cos(yaw)*Math.cos(pitch)),desired=myPos.clone().add(new THREE.Vector3(0,2.5,0)).addScaledVector(dir,-6.5);camera.position.lerp(desired,.15);camera.lookAt(myPos.x,myPos.y+1.45,myPos.z);
+ const me=playerMeshes.get(myId);if(me){me.position.set(myPos.x,0,myPos.z);me.rotation.y=yaw;}
+ document.getElementById('staminaText').textContent=Math.round(staminaLocal);document.getElementById('staminaBar').style.width=staminaLocal+'%';
+ }else{const t=performance.now()*.00012;camera.position.set(Math.sin(t)*24,15,Math.cos(t)*24);camera.lookAt(0,0,0);}
+ flame.scale.y=.8+Math.random()*.4;fireLight.intensity=2.4+Math.random()*1.3;
+ const cycle=(performance.now()*.000025)%(Math.PI*2),day=(Math.sin(cycle)+1)/2;
+ sun.intensity=.25+day*2.15;scene.background.setHSL(.34,.16,.055+day*.48);scene.fog.color.copy(scene.background);renderer.render(scene,camera);
+}
+animate();window.addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+</script>
+</body></html>
