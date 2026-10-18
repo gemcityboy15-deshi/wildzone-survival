@@ -1,0 +1,13 @@
+{
+  "name": "wildzone-coop-survival",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A small 3D online co-op survival game prototype",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "socket.io": "^4.8.1"
+  }
+}
